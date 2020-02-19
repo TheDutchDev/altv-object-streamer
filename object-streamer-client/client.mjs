@@ -4,9 +4,7 @@
 
 import * as alt from 'alt';
 
-import { ObjectStreamer } from "./object-streamer";
-
-let objStreamer = new ObjectStreamer();
+import { objStreamer } from "./object-streamer";
 
 // when an object is streamed in
 alt.onServer( "entitySync:create", entity => {

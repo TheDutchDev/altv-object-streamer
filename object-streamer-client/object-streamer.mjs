@@ -5,28 +5,20 @@
 import * as alt from 'alt';
 import * as natives from 'natives';
 
-// array to store the created objects
-let objects;
-
-export class ObjectStreamer {
+class ObjectStreamer {
     constructor( ) {
-        if( objects === undefined ) {
-            objects = this;
-            objects.list = [];
-        }
-
-        return objects;
+        this.objects = [];
     }
 
     add( entityId, model, entityType, x, y, z, rx, ry, rz ) {
 
         // clear the object incase it still exists.
-        objects.remove( entityId );
-        objects.clear( entityId );
+        this.remove( entityId );
+        this.clear( entityId );
 
-        let handle = objects.spawnObject( model, x, y, z, rx, ry, rz );
+        let handle = this.spawnObject( model, x, y, z, rx, ry, rz );
 
-        objects.list.push( {
+        this.objects.push( {
             handle: handle, entityId: +entityId, model: model, entityType: entityType,
             x: x, y: y, z: z, rx: rx, ry: ry, rz: rz
         } );
@@ -40,59 +32,59 @@ export class ObjectStreamer {
     }
 
     updatePosition( entityId, x, y, z ) {
-        let idx = objects.list.findIndex( o => +o.entityId === +entityId );
+        let idx = this.objects.findIndex( o => +o.entityId === +entityId );
 
         if( idx === -1 )
             return;
 
-        if( objects.list[ idx ].handle !== null )
-            natives.deleteObject( +objects.list[ idx ].handle );
+        if( this.objects[ idx ].handle !== null )
+            natives.deleteObject( +this.objects[ idx ].handle );
 
-        objects.list[ idx ].handle = null;
-        objects.list[ idx ].handle = objects.spawnObject( objects.list[ idx ].model, x, y, z, objects.list[ idx ].rx, objects.list[ idx ].ry, objects.list[ idx ].rz );
+        this.objects[ idx ].handle = null;
+        this.objects[ idx ].handle = this.spawnObject( this.objects[ idx ].model, x, y, z, this.objects[ idx ].rx, this.objects[ idx ].ry, this.objects[ idx ].rz );
     }
 
     updateData( entityId, data ) {
-        let idx = objects.list.findIndex( o => +o.entityId === +entityId );
+        let idx = this.objects.findIndex( o => +o.entityId === +entityId );
 
         if( idx === -1 )
             return;
 
         for( const key in data ) {
             if( data.hasOwnProperty( key ) )
-                objects.list[ idx ][ key ] = data[ key ];
+                this.objects[ idx ][ key ] = data[ key ];
         }
 
         // delete existing object
-        if( objects.list[ idx ].handle !== null )
-            natives.deleteObject( +objects.list[ idx ].handle );
+        if( this.objects[ idx ].handle !== null )
+            natives.deleteObject( +this.objects[ idx ].handle );
 
-        objects.list[ idx ].handle = null;
-        objects.list[ idx ].handle = objects.spawnObject(
-            objects.list[ idx ].model,
-            objects.list[ idx ].x, objects.list[ idx ].y, objects.list[ idx ].z,
-            objects.list[ idx ].rx, objects.list[ idx ].ry, objects.list[ idx ].rz
+        this.objects[ idx ].handle = null;
+        this.objects[ idx ].handle = this.spawnObject(
+            this.objects[ idx ].model,
+            this.objects[ idx ].x, this.objects[ idx ].y, this.objects[ idx ].z,
+            this.objects[ idx ].rx, this.objects[ idx ].ry, this.objects[ idx ].rz
         );
     }
 
     remove( entityId ) {
-        let idx = objects.list.findIndex( o => +o.entityId === +entityId );
+        let idx = this.objects.findIndex( o => +o.entityId === +entityId );
 
         if( idx === -1 )
             return;
 
-        natives.deleteObject( +objects.list[ idx ].handle );
-        objects.list[ idx ].handle = null;
-        alt.log( "objects in list after remove: ", JSON.stringify( objects.list ) );
+        natives.deleteObject( +this.objects[ idx ].handle );
+        this.objects[ idx ].handle = null;
     }
 
     clear( entityId ) {
-        let idx = objects.list.findIndex( o => +o.entityId === +entityId );
+        let idx = this.objects.findIndex( o => +o.entityId === +entityId );
 
         if( idx === -1 )
             return;
 
-        objects.list.splice( idx, 1 );
-        alt.log( "objects in list after clear: ", JSON.stringify( objects.list ) );
+        this.objects.splice( idx, 1 );
     }
 }
+
+export const objStreamer = new ObjectStreamer();
