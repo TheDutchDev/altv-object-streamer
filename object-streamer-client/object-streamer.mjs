@@ -5,18 +5,20 @@
 import * as alt from 'alt';
 import * as natives from 'natives';
 
+import { asyncModel }  from "./async-models";
+
 class ObjectStreamer {
     constructor( ) {
         this.objects = [];
     }
 
-    add( entityId, model, entityType, x, y, z, rx, ry, rz ) {
+    async add( entityId, model, entityType, x, y, z, rx, ry, rz ) {
 
         // clear the object incase it still exists.
         this.remove( entityId );
         this.clear( entityId );
 
-        let handle = this.spawnObject( model, x, y, z, rx, ry, rz );
+        let handle = await this.spawnObject( model, x, y, z, rx, ry, rz );
 
         this.objects.push( {
             handle: handle, entityId: +entityId, model: model, entityType: entityType,
@@ -24,14 +26,16 @@ class ObjectStreamer {
         } );
     }
 
-    spawnObject( model, x, y, z, rx, ry, rz ) {
+    async spawnObject( model, x, y, z, rx, ry, rz ) {
+        await asyncModel.load( model );
+
         let handle = natives.createObject( natives.getHashKey( model ), x, y, z, true, true, true );
         natives.setEntityRotation( handle, Math.PI * rx / 180, Math.PI * ry / 180, Math.PI * rz / 180, 1, true );
 
         return handle;
     }
 
-    updatePosition( entityId, x, y, z ) {
+    async updatePosition( entityId, x, y, z ) {
         let idx = this.objects.findIndex( o => +o.entityId === +entityId );
 
         if( idx === -1 )
@@ -40,11 +44,10 @@ class ObjectStreamer {
         if( this.objects[ idx ].handle !== null )
             natives.deleteObject( +this.objects[ idx ].handle );
 
-        this.objects[ idx ].handle = null;
-        this.objects[ idx ].handle = this.spawnObject( this.objects[ idx ].model, x, y, z, this.objects[ idx ].rx, this.objects[ idx ].ry, this.objects[ idx ].rz );
+        this.objects[ idx ].handle = await this.spawnObject( this.objects[ idx ].model, x, y, z, this.objects[ idx ].rx, this.objects[ idx ].ry, this.objects[ idx ].rz );
     }
 
-    updateData( entityId, data ) {
+    async updateData( entityId, data ) {
         let idx = this.objects.findIndex( o => +o.entityId === +entityId );
 
         if( idx === -1 )
@@ -59,8 +62,7 @@ class ObjectStreamer {
         if( this.objects[ idx ].handle !== null )
             natives.deleteObject( +this.objects[ idx ].handle );
 
-        this.objects[ idx ].handle = null;
-        this.objects[ idx ].handle = this.spawnObject(
+        this.objects[ idx ].handle = await this.spawnObject(
             this.objects[ idx ].model,
             this.objects[ idx ].x, this.objects[ idx ].y, this.objects[ idx ].z,
             this.objects[ idx ].rx, this.objects[ idx ].ry, this.objects[ idx ].rz
@@ -72,6 +74,8 @@ class ObjectStreamer {
 
         if( idx === -1 )
             return;
+
+        asyncModel.cancel( this.objects[ idx ].model );
 
         natives.deleteObject( +this.objects[ idx ].handle );
         this.objects[ idx ].handle = null;
