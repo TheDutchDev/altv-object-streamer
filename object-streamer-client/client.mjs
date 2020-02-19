@@ -13,7 +13,7 @@ alt.onServer( "entitySync:create", entity => {
     if( entity.data ) {
         let data = entity.data.entityData;
 
-        if( data.EntityType === "object" ) {
+        if( data && data.EntityType === "object" ) {
             objStreamer.add(
                 +entity.id, data.Model, data.EntityType,
                 entity.position.x, entity.position.y, entity.position.z,
