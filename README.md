@@ -9,7 +9,7 @@ A server-side C# implementation of an object streamer for ALT:V MP.
 AltEntitySync.Init( 1, 100,
    repository => new ServerEventNetworkLayer( repository ),
    ( ) => new LimitedGrid3( 50_000, 50_000, 100, 10_000, 10_000, 600 ),
-   new IdProvider( ) 
+   new IdProvider( ) // Documentation: https://fabianterhorst.github.io/coreclr-module/articles/entity-sync.html
 );
 ```
 - Copy ``object-streamer-client`` to your ``server-root/resources`` directory.
