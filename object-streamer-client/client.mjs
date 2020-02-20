@@ -13,9 +13,6 @@ alt.onServer( "entitySync:create", entity => {
         let data = entity.data;
 
         if( data && data.entityType === "object" ) {
-
-            alt.log( 'data: ', JSON.stringify( data ) );
-
             objStreamer.addObject(
                 +entity.id, data.model, data.entityType,
                 entity.position, data.rotation,
@@ -43,9 +40,6 @@ alt.onServer( "entitySync:updatePosition", ( entityId, position ) => {
 
 // when a streamed in object changes data
 alt.onServer( "entitySync:updateData", ( entityId, newData ) => {
-
-    alt.log( "entity update: ", JSON.stringify( newData ) );
-
     let obj = objStreamer.getObject( +entityId );
 
     if( obj === null )
