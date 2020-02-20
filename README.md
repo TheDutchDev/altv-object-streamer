@@ -20,7 +20,10 @@ AltEntitySync.Init( 1, 100,
 The following global methods are available:
 ```csharp
 // Create a new object on the map, returns the created object.
-DynamicObject CreateDynamicObject( string model, Vector3 position, Vector3 rotation, int dimension = 0, string type = "object", uint streamRange = 400 );
+DynamicObject CreateDynamicObject( 
+    string model, Vector3 position, Vector3 rotation, int dimension = 0, bool? isDynamic = null, bool? frozen = null, uint? lodDistance = null, 
+    Rgb lightColor = null, bool? onFire = null, TextureVariation? textureVariation = null, bool? visible = null, string type = "object", uint streamRange = 400 
+);
 
 // Destroy an object by it's ID or object instance. returns true if successful.
 bool DestroyDynamicObject( ulong dynamicObjectId );
@@ -38,17 +41,35 @@ List<DynamicObject> GetAllDynamicObjects( );
 
 Each object has it's own set of methods that can be used to change properties:
 ```csharp
-// Get object's current rotation in degrees.
-Vector3 GetRotation( );
+// Get/set object's rotation
+Vector3 Rotation { get; set; }
 
-// Set the object's rotation, returns true if successful.
-bool SetRotation( Vector3 newRot );
+// Get/set object's position
+Vector3 Position { get; set; }
 
-// Change an object's model, returns true if successful.
-bool SetModel( string newModel );
+// Get/set object's model
+string Model { get; set; }
 
-// Change the object's position.
-void SetPosition( Vector3 newPos );
+// Get/set LOD Distance (default null)
+uint? LodDistance { get; set; }
+
+// Get/set object's texture variation (default null)
+TextureVariation? TextureVariation { get; set; }
+
+// Get/set object's dynamic state (default null)
+bool? Dynamic { get; set; }
+
+// Get/set object's visibility state (default null) 
+bool? Visible { get; set; }
+
+// Get/set object's on fire state (default null) (don't use this as of right now, it does create a fire but it's very small. requires further native testing).
+bool? OnFire { get; set; }
+
+// Get/set object's frozen state (default null)
+bool? Frozen { get; set; }
+
+// Get/set object's light color (default null)
+Rgb LightColor { get; set; }
 ```
 
 ## Examples
@@ -57,13 +78,25 @@ void SetPosition( Vector3 newPos );
 DynamicObject obj = ObjectStreamer.CreateDynamicObject( "bkr_prop_biker_bblock_cor", new Vector3( -859.655f, -803.499f, 25.566f ), new Rotation( 0, 0, 0 ), 0 );
 
 // Change object into a house.
-obj.SetModel( "lf_house_17_" );
+obj.Model = "lf_house_17_";
 
 // Change position.
-obj.SetPosition( new Position( 300f, 500f, 25f ) ); // Accepts both Vector3 and Position types.
+obj.Position = new Position( 300f, 500f, 25f ); // Accepts both Vector3 and Position types.
 
 // Change rotation.
-obj.SetRotation( new Rotation( 0f, 0f, 25f ) ); // Accepts both Vector3 and Rotation types.
+obj.Rotation = new Rotation( 0f, 0f, 25f ); // Accepts both Vector3 and Rotation types.
+
+// Hide the object
+obj.Visible = false;
+
+// Set an object's texture variation
+obj.TextureVariation = TextureVariation.Nautical;
+
+// Set an object's light color
+obj.LightColor = new Rgb( 25, 49, 120 ); // random
+
+// Freeze an object
+obj.Frozen = true;
 
 // Destroy the object
 ObjectStreamer.DestroyDynamicObject( obj ); // has an overload method that accepts an ID instead of object instance.

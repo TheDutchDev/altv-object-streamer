@@ -6,30 +6,48 @@ using System.Numerics;
 
 namespace DasNiels.AltV.Streamers
 {
-    /// <summary>
-    /// Class to hold the object data
-    /// </summary>
-    public class DynamicObjectData : IWritable
+    public enum TextureVariation
     {
-        public string Model { get; set; } = "";
-        public float RotX { get; set; }
-        public float RotY { get; set; }
-        public float RotZ { get; set; }
-        public string EntityType { get; set; }
+        Pacific = 0,
+        Azure = 1,
+        Nautical = 2,
+        Continental = 3,
+        Battleship = 4,
+        Intrepid = 5,
+        Uniform = 6,
+        Classico = 7,
+        Mediterranean = 8,
+        Command = 9,
+        Mariner = 10,
+        Ruby = 11,
+        Vintage = 12,
+        Pristine = 13,
+        Merchant = 14,
+        Voyager = 15
+    }
+
+    public class Rgb : IWritable
+    {
+        public int Red { get; set; }
+        public int Green { get; set; }
+        public int Blue { get; set; }
+
+        public Rgb( int red, int green, int blue )
+        {
+            Red = red;
+            Green = green;
+            Blue = blue;
+        }
 
         public void OnWrite( IMValueWriter writer )
         {
             writer.BeginObject( );
-            writer.Name( "EntityType" );
-            writer.Value( EntityType );
-            writer.Name( "Model" );
-            writer.Value( Model );
-            writer.Name( "RotX" );
-            writer.Value( RotX );
-            writer.Name( "RotY" );
-            writer.Value( RotY );
-            writer.Name( "RotZ" );
-            writer.Value( RotZ );
+            writer.Name( "Red" );
+            writer.Value( Red );
+            writer.Name( "Green" );
+            writer.Value( Green );
+            writer.Name( "Blue" );
+            writer.Value( Blue );
             writer.EndObject( );
         }
     }
@@ -39,90 +57,295 @@ namespace DasNiels.AltV.Streamers
     /// </summary>
     public class DynamicObject : Entity, IEntity
     {
-        public DynamicObject( Vector3 position, int dimension, uint range, IDictionary<string, object> data ) : base( 0, position, dimension, range, data )
-        {
-        }   
+        private string EntityType { 
+            get
+            {
+                if( !TryGetData( "entityType", out string type ) )
+                    return null;
+
+                return type;
+            }
+            set
+            {
+                // No data changed
+                if( EntityType == value )
+                    return;
+
+                SetData( "entityType", value );
+            }
+        } 
 
         /// <summary>
-        /// Get all the object's data.
+        /// Set or get the current object's rotation (in degrees).
         /// </summary>
-        /// <returns>An object containing all the object's data</returns>
-        public DynamicObjectData GetDynamicObjectData( )
+        public Vector3 Rotation
         {
-           if( !TryGetData( "entityData", out DynamicObjectData data ) )
-                return default;
+            get
+            {
+                if( !TryGetData( "rotation", out Dictionary<string, object> data ) )
+                    return default;
 
-            return data;
+                return new Vector3( )
+                {
+                    X = Convert.ToSingle( data[ "x" ] ),
+                    Y = Convert.ToSingle( data[ "y" ] ),
+                    Z = Convert.ToSingle( data[ "z" ] ),
+                };
+            }
+            set
+            {
+                // No data changed
+                if( Rotation != null && Rotation.X == value.X && Rotation.Y == value.Y && Rotation.Z == value.Z && value != new Vector3( 0, 0, 0 ) )
+                    return;
+
+                Dictionary<string, object> dict = new Dictionary<string, object>( )
+                {
+                    [ "x" ] = value.X,
+                    [ "y" ] = value.Y,
+                    [ "z" ] = value.Z,
+                };
+                SetData( "rotation", dict );
+            }
         }
 
         /// <summary>
-        /// Get the object's current rotation
+        /// Set or get the current object's model.
         /// </summary>
-        /// <returns>A vector3 containing the rotation XYZ values in degrees.</returns>
-        public Vector3 GetRotation( )
+        public string Model
         {
-            DynamicObjectData data = GetDynamicObjectData( );
+            get
+            {
+                if( !TryGetData( "model", out string model ) )
+                    return null;
 
-            if( data == null )
-                return new Vector3( 0 );
+                return model;
+            }
+            set
+            {
+                // No data changed
+                if( Model == value )
+                    return;
 
-            return new Vector3( data.RotX, data.RotY, data.RotZ );
+                SetData( "model", value );
+            }
         }
 
         /// <summary>
-        /// Set the rotation of the object.
+        /// Set or get LOD Distance of the object.
         /// </summary>
-        /// <param name="newRot">The new rotation in degrees.</param>
-        /// <returns>True if rotation was changed successfully.</returns>
-        public bool SetRotation( Vector3 newRot )
+        public uint? LodDistance
         {
-            DynamicObjectData data = GetDynamicObjectData( );
+            get
+            {
+                if( !TryGetData( "lodDistance", out uint lodDist ) )
+                    return null;
 
-            if( data == null )
-                return false;
+                return lodDist;
+            }
+            set
+            {
+                // if value is set to null, reset the data
+                if( value == null )
+                {
+                    SetData( "lodDistance", null );
+                    return;
+                }
 
-            data.RotX = newRot.X;
-            data.RotY = newRot.Y;
-            data.RotZ = newRot.Z;
+                // No data changed
+                if( LodDistance == value )
+                    return;
 
-            SetDynamicObjectData( data );
-            return true;
+                SetData( "lodDistance", value );
+            }
         }
 
         /// <summary>
-        /// Change an object's model.
+        /// Get or set the current texture variation, use null to reset it to default.
         /// </summary>
-        /// <param name="newModel">The new model.</param>
-        /// <returns>True if operation succeeded, false otherwise.</returns>
-        public bool SetModel( string newModel )
+        public TextureVariation? TextureVariation
         {
-            DynamicObjectData data = GetDynamicObjectData( );
+            get
+            {
+                if( !TryGetData( "textureVariation", out int variation ) )
+                    return null;
 
-            if( data == null )
-                return false;
+                return ( TextureVariation ) variation;
+            }
+            set
+            {
+                // if value is set to null, reset the data
+                if( value == null )
+                {
+                    SetData( "textureVariation", null );
+                    return;
+                }
 
-            data.Model = newModel;
+                // No data changed
+                if( TextureVariation == value )
+                    return;
 
-            SetDynamicObjectData( data );
-            return true;
+                SetData( "textureVariation", ( int ) value );
+            }
         }
 
         /// <summary>
-        /// Set the dynamic object's data, only use this if you know what you're doing!
+        /// Get or set the object's dynamic state. Some objects can be moved around by the player when dynamic is set to true.
         /// </summary>
-        /// <param name="data">The new data</param>
-        public void SetDynamicObjectData( DynamicObjectData data )
+        public bool? Dynamic
         {
-            SetData( "entityData", data );
+            get
+            {
+                if( !TryGetData( "dynamic", out bool isDynamic ) )
+                    return false;
+
+                return isDynamic;
+            }
+            set
+            {
+                // if value is set to null, reset the data
+                if( value == null )
+                {
+                    SetData( "dynamic", null );
+                    return;
+                }
+
+                // No data changed
+                if( Dynamic == value )
+                    return;
+
+                SetData( "dynamic", value );
+            }
         }
 
         /// <summary>
-        /// Set the position of the object.
+        /// Set/get visibility state of object
         /// </summary>
-        /// <param name="newPos">The new position of the object.</param>
-        public void SetPosition( Vector3 newPos )
+        public bool? Visible
         {
-            Position = newPos;
+            get
+            {
+                if( !TryGetData( "visible", out bool visible ) )
+                    return false;
+
+                return visible;
+            }
+            set
+            {
+                // if value is set to null, reset the data
+                if( value == null )
+                {
+                    SetData( "visible", null );
+                    return;
+                }
+
+                // No data changed
+                if( Visible == value )
+                    return;
+
+                SetData( "visible", value );
+            }
+        }
+
+        /// <summary>
+        /// Set/get an object on fire, NOTE: does not work very well as of right now, fire is very small.
+        /// </summary>
+        public bool? OnFire
+        {
+            get
+            {
+                if( !TryGetData( "onFire", out bool onFire ) )
+                    return false;
+
+                return onFire;
+            }
+            set
+            {
+                // if value is set to null, reset the data
+                if( value == null )
+                {
+                    SetData( "onFire", null );
+                    return;
+                }
+
+                // No data changed
+                if( OnFire == value )
+                    return;
+
+                SetData( "onFire", value );
+            }
+        }
+
+        /// <summary>
+        /// Freeze an object into it's current position. or get it's status
+        /// </summary>
+        public bool? Frozen
+        {
+            get
+            {
+                if( !TryGetData( "frozen", out bool frozen ) )
+                    return false;
+
+                return frozen;
+            }
+            set
+            {
+                // if value is set to null, reset the data
+                if( value == null )
+                {
+                    SetData( "frozen", null );
+                    return;
+                }
+
+                // No data changed
+                if( Frozen == value )
+                    return;
+
+                SetData( "frozen", value );
+            }
+        }
+
+        /// <summary>
+        /// Set the light color of the object, use null to reset it to default.
+        /// </summary>
+        public Rgb LightColor
+        {
+            get
+            {
+                if( !TryGetData( "lightColor", out Dictionary<string, object> data ) )
+                    return null;
+
+                return new Rgb(
+                    Convert.ToInt32( data[ "r" ] ),
+                    Convert.ToInt32( data[ "g" ] ),
+                    Convert.ToInt32( data[ "b" ] )
+                );
+            }
+            set
+            {
+                // if value is set to null, reset the data
+                if( value == null )
+                {
+                    SetData( "lightColor", null );
+                    return;
+                }
+
+                // No data changed
+                if( LightColor != null && LightColor.Red == value.Red && LightColor.Green == value.Green && LightColor.Blue == value.Blue )
+                    return;
+
+                Dictionary<string, object> dict = new Dictionary<string, object>
+                {
+                    { "r", value.Red },
+                    { "g", value.Green },
+                    { "b", value.Blue }
+                };
+                SetData( "lightColor", dict );
+            }
+        }
+
+        public DynamicObject( Vector3 position, int dimension, uint range, string entityType ) : base( 0, position, dimension, range )
+        {
+            EntityType = entityType;
         }
     }
 
@@ -138,19 +361,42 @@ namespace DasNiels.AltV.Streamers
         /// <param name="type">(Optional): Type of object, only use this if you want to separate certain object types on a custom client-side based object streamer.</param>
         /// <param name="streamRange">(Optional): The range that a player has to be in before the object spawns, default value is 400.</param>
         /// <returns>The created object</returns>
-        public static DynamicObject CreateDynamicObject( string model, Vector3 position, Vector3 rotation, int dimension = 0, string type = "object", uint streamRange = 400 )
-        {
-            Dictionary<string, object> data = new Dictionary<string, object>( );
-            data.Add( "entityData", new DynamicObjectData
-            {
-                EntityType = type,
-                Model = model,
-                RotX = rotation.X,
-                RotY = rotation.Y,
-                RotZ = rotation.Z
-            } );
+        /// 
 
-            DynamicObject obj = new DynamicObject( position, dimension, streamRange, data );
+        /// <summary>
+        /// Create a new dynamic object.
+        /// </summary>
+        /// <param name="model">The object model name.</param>
+        /// <param name="position">The position to spawn the object at.</param>
+        /// <param name="rotation">The rotation to spawn the object at(degrees).</param>
+        /// <param name="dimension">The dimension to spawn the object in.</param>
+        /// <param name="isDynamic">(Optional): Set object dynamic or not.</param>
+        /// <param name="frozen">(Optional): Set object frozen.</param>
+        /// <param name="lodDistance">(Optional): Set LOD distance.</param>
+        /// <param name="lightColor">(Optional): set light color.</param>
+        /// <param name="onFire">(Optional): set object on fire(DOESN'T WORK PROPERLY YET!)</param>
+        /// <param name="textureVariation">(Optional): Set object texture variation.</param>
+        /// <param name="visible">(Optional): Set object visibility.</param>
+        /// <param name="type">(Optional): Type of object, only use this if you want to separate certain object types on a custom client-side based object streamer.</param>
+        /// <param name="streamRange">(Optional): The range that a player has to be in before the object spawns, default value is 400.</param>
+        /// <returns></returns>
+        public static DynamicObject CreateDynamicObject( 
+            string model, Vector3 position, Vector3 rotation, int dimension = 0, bool? isDynamic = null, bool? frozen = null, uint? lodDistance = null, 
+            Rgb lightColor = null, bool? onFire = null, TextureVariation? textureVariation = null, bool? visible = null, string type = "object", uint streamRange = 400 
+        )
+        {
+            DynamicObject obj = new DynamicObject( position, dimension, streamRange, type )
+            {
+                Rotation = rotation,
+                Model = model,
+                Dynamic = isDynamic ?? null,
+                Frozen = frozen ?? null,
+                LodDistance = lodDistance ?? null,
+                LightColor = lightColor ?? null,
+                OnFire = onFire ?? null,
+                TextureVariation = textureVariation ?? null,
+                Visible = visible ?? null
+            };
             AltEntitySync.AddEntity( obj );
             return obj;
         }

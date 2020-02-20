@@ -11,7 +11,7 @@ class AsyncModel {
     }
 
     cancel( entityId ) {
-        this.loadingModels.delete( entityId );
+        this.loadingModels.delete( +entityId );
     }
 
     async load( entityId, model ) {
@@ -19,12 +19,12 @@ class AsyncModel {
             if( typeof model === 'string' )
                 model = natives.getHashKey( model );
 
-            this.loadingModels.add( entityId );
+            this.loadingModels.add( +entityId );
 
             natives.requestModel( model );
 
             const interval = alt.setInterval( () => {
-                if( !this.loadingModels.has( entityId ) ) {
+                if( !this.loadingModels.has( +entityId ) ) {
                     return done( !!natives.hasModelLoaded( model ) );
                 }
 
@@ -33,11 +33,15 @@ class AsyncModel {
                 }
             }, 0 );
 
-            const done = result => {
-                if( typeof interval !== 'undefined' )
-                    alt.clearInterval( interval );
+            const timeout = alt.setTimeout( ( ) => {
+                return done( !!natives.hasModelLoaded( model ) );
+            }, 3000 );
 
-                this.loadingModels.delete( entityId );
+            const done = result => {
+                alt.clearInterval( interval );
+                alt.clearTimeout( timeout );
+
+                this.loadingModels.delete( +entityId );
                 resolve( result );
             };
 

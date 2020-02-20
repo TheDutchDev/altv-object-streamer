@@ -38,6 +38,13 @@ namespace TestServer
             Console.WriteLine( "| cp {id} -> Move a specified object by 5 units on the Z axis(height)." );
             Console.WriteLine( "| cr {id} -> Rotate a specified object by 5 units on the Z axis(yaw)." );
             Console.WriteLine( "| cm {id} -> Change model of the specified object." );
+            Console.WriteLine( "| cld {id} -> Change LOD Distance of the specified object." );
+            Console.WriteLine( "| ctv {id} -> Change texture variation of the specified object." );
+            Console.WriteLine( "| cd {id} -> Change dynamic of the specified object." );
+            Console.WriteLine( "| cv {id} -> Change visibility of the specified object." );
+            Console.WriteLine( "| cof {id} -> Change on fire of the specified object." );
+            Console.WriteLine( "| cf {id} -> Change frozen of the specified object." );
+            Console.WriteLine( "| clc {id} -> Change light color of the specified object." );
             Console.WriteLine( " " );
             Console.WriteLine( "| do {id} -> Destroy a dynamic object by ID(IDs start at 0)." );
             Console.WriteLine( "| go {id} -> Get dynamic object data of the specified object ID." );
@@ -50,9 +57,9 @@ namespace TestServer
         private void CreateObjects( )
         {
             // Create some objects
-            ObjectStreamer.CreateDynamicObject( "bkr_prop_biker_bblock_cor", new Vector3( -859.655f, -803.499f, 25.566f ), new Rotation( 0, 0, 0 ), 0 );
-            ObjectStreamer.CreateDynamicObject( "bkr_prop_biker_bowlpin_stand", new Vector3( -959.655f, -903.499f, 25.566f ), new Rotation( 0, 0, 0 ), 0 );
-            ObjectStreamer.CreateDynamicObject( "bkr_prop_biker_tube_crn", new Vector3( -909.655f, -953.499f, 25.566f ), new Rotation( 0, 0, 0 ), 0 );
+            ObjectStreamer.CreateDynamicObject( "port_xr_lifeboat", new Vector3( -859.655f, -803.499f, 25.566f ), new Vector3( 0, 0, 0 ), 0 );
+            ObjectStreamer.CreateDynamicObject( "bkr_prop_biker_bowlpin_stand", new Vector3( -959.655f, -903.499f, 25.566f ), new Vector3( 0, 0, 0 ), 0 );
+            ObjectStreamer.CreateDynamicObject( "bkr_prop_biker_tube_crn", new Vector3( -909.655f, -953.499f, 25.566f ), new Vector3( 0, 0, 0 ), 0 );
         }
 
         private async Task OnConsoleCommand( string name, string[ ] args )
@@ -94,12 +101,131 @@ namespace TestServer
                 var obj = ObjectStreamer.GetDynamicObject( objId );
                 if( obj != null )
                 {
-                    Vector3 rot = obj.GetRotation( );
+                    Vector3 rot = obj.Rotation;
+                    obj.Rotation = new Vector3( rot.X, rot.Y, rot.Z + 5f );
+                    Console.WriteLine( $"Object rotation increased on Z with +5f" );
+                }
+                else
+                    Console.WriteLine( $"Couldnt find object with ID { objId }" );
+            }
 
-                    if( obj.SetRotation( new Vector3( rot.X, rot.Y, rot.Z + 5f ) ) )
-                        Console.WriteLine( $"Object rotation increased on Z with +5f" );
-                    else
-                        Console.WriteLine( $"Object rotation failed for object with ID { objId }." );
+            // change visible
+            if( name == "cv" )
+            {
+                if( args.Length == 0 )
+                    return;
+
+                ulong objId = Convert.ToUInt64( args[ 0 ] );
+                var obj = ObjectStreamer.GetDynamicObject( objId );
+                if( obj != null )
+                {
+                    obj.Visible = !obj.Visible;
+                    Console.WriteLine( $"Object visibility set to { obj.Visible }" );
+                }
+                else
+                    Console.WriteLine( $"Couldnt find object with ID { objId }" );
+            }
+
+            // change lod distance
+            if( name == "cld" )
+            {
+                if( args.Length == 0 )
+                    return;
+
+                ulong objId = Convert.ToUInt64( args[ 0 ] );
+                var obj = ObjectStreamer.GetDynamicObject( objId );
+                if( obj != null )
+                {
+                    obj.LodDistance += 100;
+                    Console.WriteLine( $"Object LOD Dist increased by 100" );
+                }
+                else
+                    Console.WriteLine( $"Couldnt find object with ID { objId }" );
+            }
+
+            // change texture variation
+            if( name == "ctv" )
+            {
+                if( args.Length == 0 )
+                    return;
+
+                ulong objId = Convert.ToUInt64( args[ 0 ] );
+                var obj = ObjectStreamer.GetDynamicObject( objId );
+                if( obj != null )
+                {
+                    var variations = Enum.GetValues( typeof( TextureVariation ) );
+
+                    obj.TextureVariation = ( TextureVariation ) variations.GetValue( new Random( ).Next( variations.Length ) );
+                    Console.WriteLine( $"Object texture variation changed to a random variation" );
+                }
+                else
+                    Console.WriteLine( $"Couldnt find object with ID { objId }" );
+            }
+
+            // change dynamic
+            if( name == "cd" )
+            {
+                if( args.Length == 0 )
+                    return;
+
+                ulong objId = Convert.ToUInt64( args[ 0 ] );
+                var obj = ObjectStreamer.GetDynamicObject( objId );
+                if( obj != null )
+                {
+                    obj.Dynamic = !obj.Dynamic;
+                    Console.WriteLine( $"Object dynamic changed to: { obj.Dynamic }" );
+                }
+                else
+                    Console.WriteLine( $"Couldnt find object with ID { objId }" );
+            }
+
+            // change on fire(EXPERIMENTAL, DOESNT WORK VERY WELL AS OF RIGHT NOW!)
+            if( name == "cof" )
+            {
+                if( args.Length == 0 )
+                    return;
+
+                ulong objId = Convert.ToUInt64( args[ 0 ] );
+                var obj = ObjectStreamer.GetDynamicObject( objId );
+                if( obj != null )
+                {
+                    obj.OnFire = !obj.OnFire;
+                    Console.WriteLine( $"Object on fire changed to: { obj.OnFire }" );
+                }
+                else
+                    Console.WriteLine( $"Couldnt find object with ID { objId }" );
+            }
+
+            // change frozen
+            if( name == "cf" )
+            {
+                if( args.Length == 0 )
+                    return;
+
+                ulong objId = Convert.ToUInt64( args[ 0 ] );
+                var obj = ObjectStreamer.GetDynamicObject( objId );
+                if( obj != null )
+                {
+                    obj.Frozen = !obj.Frozen;
+                    Console.WriteLine( $"Object frozen changed to: { obj.Frozen }" );
+                }
+                else
+                    Console.WriteLine( $"Couldnt find object with ID { objId }" );
+            }
+
+            // change light color
+            if( name == "clc" )
+            {
+                if( args.Length == 0 )
+                    return;
+
+                ulong objId = Convert.ToUInt64( args[ 0 ] );
+                var obj = ObjectStreamer.GetDynamicObject( objId );
+                if( obj != null )
+                {
+                    Random r = new Random( );
+                    obj.LightColor = new Rgb( r.Next( 0, 256 ), r.Next( 0, 256 ), r.Next( 0, 256 ) );
+                    Console.WriteLine( $"Object lightcolor changed to random value" );
                 }
                 else
                     Console.WriteLine( $"Couldnt find object with ID { objId }" );
@@ -116,10 +242,8 @@ namespace TestServer
                 if( obj != null )
                 {
                     // change object into a house
-                    if( obj.SetModel( "lf_house_17_" ) )
-                        Console.WriteLine( $"Object changed into a house." );
-                    else
-                        Console.WriteLine( $"Object model change failed for object ID { objId }." );
+                    obj.Model = "lf_house_17_";
+                    Console.WriteLine( $"Object changed into a house." );
                 }
                 else
                     Console.WriteLine( $"Couldnt find object with ID { objId }" );
@@ -135,8 +259,10 @@ namespace TestServer
                 var obj = ObjectStreamer.GetDynamicObject( objId );
                 if( obj != null )
                 {
-                    obj.SetPosition( new Vector3( obj.Position.X, obj.Position.Y, obj.Position.Z + 5f ) );
-                    Console.WriteLine( $"Object position increased on Z with +5f" );
+                    Console.WriteLine( $"obj pos: { obj.Position.Z }" );
+
+                    obj.Position += new Vector3( 0, 0, 5 );
+                    Console.WriteLine( $"Object position increased on Z with +5f { obj.Position.Z }" );
                 }
                 else
                     Console.WriteLine( $"Couldnt find object with ID { objId }" );
@@ -152,8 +278,7 @@ namespace TestServer
                 var obj = ObjectStreamer.GetDynamicObject( objId );
                 if( obj != null )
                 {
-                    var data = obj.GetDynamicObjectData( );
-                    Console.WriteLine( $"Object found, data: { data.Model }, { data.EntityType }, { data.RotX }, { data.RotY }, { data.RotZ }!" );
+                    Console.WriteLine( $"Object found, data: { obj.Model }, { obj.Rotation.X }, { obj.Rotation.Y }, { obj.Rotation.Z }, { obj.Frozen }, ...!" );
                 }
                 else
                     Console.WriteLine( $"Couldnt find object with ID { objId }" );
