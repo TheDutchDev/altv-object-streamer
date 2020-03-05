@@ -1,4 +1,5 @@
-﻿using AltV.Net.Async;
+﻿using AltV.Net;
+using AltV.Net.Async;
 using AltV.Net.Data;
 using AltV.Net.Elements.Entities;
 using AltV.Net.EntitySync;
@@ -6,6 +7,8 @@ using AltV.Net.EntitySync.ServerEvent;
 using AltV.Net.EntitySync.SpatialPartitions;
 using DasNiels.AltV.Streamers;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 
@@ -19,7 +22,7 @@ namespace TestServer
             AltEntitySync.Init( 1, 100,
                repository => new ServerEventNetworkLayer( repository ),
                ( ) => new LimitedGrid3( 50_000, 50_000, 100, 10_000, 10_000, 600 ),
-               new IdProvider( ) 
+               new IdProvider( )
             );
             //////////////////////////
 
@@ -48,6 +51,7 @@ namespace TestServer
             Console.WriteLine( " " );
             Console.WriteLine( "| do {id} -> Destroy a dynamic object by ID(IDs start at 0)." );
             Console.WriteLine( "| go {id} -> Get dynamic object data of the specified object ID." );
+            Console.WriteLine( "| gc -> Get the dynamic object closest to player 1." );
             Console.WriteLine( " " );
             Console.WriteLine( "| countobj -> Get the amount of created objects." );
             Console.WriteLine( "|--------------------------------------------------------------------|" );
@@ -282,6 +286,27 @@ namespace TestServer
                 }
                 else
                     Console.WriteLine( $"Couldnt find object with ID { objId }" );
+            }
+
+            // get closest object
+            if( name == "gc" )
+            {
+                IPlayer player = Alt.GetAllPlayers( ).First( );
+
+                if( player != null )
+                {
+                    (DynamicObject obj, float distance) = ObjectStreamer.GetClosestDynamicObject( player.Position );
+
+                    if( obj == null )
+                    {
+                        Console.WriteLine( "Couldn't find any object near player." );
+                        return;
+                    }
+
+                    Console.WriteLine( $"Closest object ID is { obj.Id } at a distance of { distance }." );
+                }
+                else
+                    Console.WriteLine( $"Couldnt find any players." );
             }
 
             // count objects

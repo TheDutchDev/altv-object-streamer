@@ -26,6 +26,27 @@ namespace DasNiels.AltV.Streamers
         Voyager = 15
     }
 
+    public class MoveData : IWritable
+    {
+        public float X { get; set; }
+        public float Y { get; set; }
+        public float Z { get; set; }
+        public float Speed { get; set; }
+        public void OnWrite( IMValueWriter writer )
+        {
+            writer.BeginObject( );
+            writer.Name( "X" );
+            writer.Value( X );
+            writer.Name( "Y" );
+            writer.Value( "Y" );
+            writer.Name( "Z" );
+            writer.Value( Z );
+            writer.Name( "Speed" );
+            writer.Value( Speed );
+            writer.EndObject( );
+        }
+    }
+
     public class Rgb : IWritable
     {
         public int Red { get; set; }
@@ -57,7 +78,8 @@ namespace DasNiels.AltV.Streamers
     /// </summary>
     public class DynamicObject : Entity, IEntity
     {
-        private string EntityType { 
+        public string EntityType
+        {
             get
             {
                 if( !TryGetData( "entityType", out string type ) )
@@ -73,7 +95,7 @@ namespace DasNiels.AltV.Streamers
 
                 SetData( "entityType", value );
             }
-        } 
+        }
 
         /// <summary>
         /// Set or get the current object's rotation (in degrees).
@@ -347,22 +369,16 @@ namespace DasNiels.AltV.Streamers
         {
             EntityType = entityType;
         }
+
+        public void Destroy( )
+        {
+            AltEntitySync.RemoveEntity( this );
+        }
     }
+
 
     public static class ObjectStreamer
     {
-        /// <summary>
-        /// Create a dynamic object.
-        /// </summary>
-        /// <param name="model">The object model name.</param>
-        /// <param name="position">The position to spawn the object at.</param>
-        /// <param name="rotation">The rotation to spawn the object at(degrees).</param>
-        /// <param name="dimension">The dimension to spawn the object in.</param>
-        /// <param name="type">(Optional): Type of object, only use this if you want to separate certain object types on a custom client-side based object streamer.</param>
-        /// <param name="streamRange">(Optional): The range that a player has to be in before the object spawns, default value is 400.</param>
-        /// <returns>The created object</returns>
-        /// 
-
         /// <summary>
         /// Create a new dynamic object.
         /// </summary>
@@ -377,15 +393,14 @@ namespace DasNiels.AltV.Streamers
         /// <param name="onFire">(Optional): set object on fire(DOESN'T WORK PROPERLY YET!)</param>
         /// <param name="textureVariation">(Optional): Set object texture variation.</param>
         /// <param name="visible">(Optional): Set object visibility.</param>
-        /// <param name="type">(Optional): Type of object, only use this if you want to separate certain object types on a custom client-side based object streamer.</param>
         /// <param name="streamRange">(Optional): The range that a player has to be in before the object spawns, default value is 400.</param>
-        /// <returns></returns>
-        public static DynamicObject CreateDynamicObject( 
-            string model, Vector3 position, Vector3 rotation, int dimension = 0, bool? isDynamic = null, bool? frozen = null, uint? lodDistance = null, 
-            Rgb lightColor = null, bool? onFire = null, TextureVariation? textureVariation = null, bool? visible = null, string type = "object", uint streamRange = 400 
+        /// <returns>The newly created dynamic object.</returns>
+        public static DynamicObject CreateDynamicObject(
+            string model, Vector3 position, Vector3 rotation, int dimension = 0, bool? isDynamic = null, bool? frozen = null, uint? lodDistance = null,
+            Rgb lightColor = null, bool? onFire = null, TextureVariation? textureVariation = null, bool? visible = null, uint streamRange = 400
         )
         {
-            DynamicObject obj = new DynamicObject( position, dimension, streamRange, type )
+            DynamicObject obj = new DynamicObject( position, dimension, streamRange, "object" )
             {
                 Rotation = rotation,
                 Model = model,
@@ -397,6 +412,7 @@ namespace DasNiels.AltV.Streamers
                 TextureVariation = textureVariation ?? null,
                 Visible = visible ?? null
             };
+
             AltEntitySync.AddEntity( obj );
             return obj;
         }
@@ -422,10 +438,9 @@ namespace DasNiels.AltV.Streamers
         /// </summary>
         /// <param name="obj">The object instance to destroy</param>
         /// <returns></returns>
-        public static bool DestroyDynamicObject( DynamicObject obj )
+        public static void DestroyDynamicObject( DynamicObject obj )
         {
             AltEntitySync.RemoveEntity( obj );
-            return true;
         }
 
         /// <summary>
@@ -438,14 +453,11 @@ namespace DasNiels.AltV.Streamers
             if( !AltEntitySync.TryGetEntity( dynamicObjectId, out IEntity entity ) )
             {
                 Console.WriteLine( $"[OBJECT-STREAMER] [GetDynamicObject] ERROR: Entity with ID { dynamicObjectId } couldn't be found." );
-                return null;
+                return default;
             }
 
             if( !( entity is DynamicObject ) )
-            {
-                Console.WriteLine( $"[OBJECT-STREAMER] [GetDynamicObject] ERROR: Entity with ID { dynamicObjectId } is not of type DynamicObject." );
-                return null;
-            }
+                return default;
 
             return ( DynamicObject ) entity;
         }
@@ -478,6 +490,32 @@ namespace DasNiels.AltV.Streamers
             }
 
             return objects;
+        }
+
+        /// <summary>
+        /// Get the dynamic object that's closest to a specified position.
+        /// </summary>
+        /// <param name="pos">The position from which to check.</param>
+        /// <returns>The closest dynamic object to the specified position, or null if none found.</returns>
+        public static (DynamicObject obj, float distance) GetClosestDynamicObject( Vector3 pos )
+        {
+            if( GetAllDynamicObjects( ).Count == 0 )
+                return (null, 5000);
+
+            DynamicObject obj = null;
+            float distance = 5000;
+
+            foreach( DynamicObject o in GetAllDynamicObjects( ) )
+            {
+                float dist = Vector3.Distance( o.Position, pos );
+                if( dist < distance )
+                {
+                    obj = o;
+                    distance = dist;
+                }
+            }
+
+            return (obj, distance);
         }
     }
 }

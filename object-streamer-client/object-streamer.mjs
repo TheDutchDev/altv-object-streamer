@@ -35,10 +35,6 @@ class ObjectStreamer {
         this.setLightColor( obj, lightColor );
     }
 
-    toRadian( angle ) {
-        return Math.PI * angle / 180;
-    }
-
     getObject( entityId ) {
         let obj = this.objects.find( o => +o.entityId === +entityId );
 
@@ -46,6 +42,27 @@ class ObjectStreamer {
             return null;
 
         return obj;
+    }
+
+    async restoreObject( entityId ) {
+        let obj = this.getObject( entityId );
+
+        if( obj === null )
+            return;
+
+        if( !await asyncModel.load( +entityId, obj.model ) )
+            return alt.log( `[OBJECT-STREAMER] Couldn't create object with model ${ obj.model }.` );
+
+        obj.handle = natives.createObjectNoOffset( natives.getHashKey( obj.model ), obj.position.x, obj.position.y, obj.position.z, true, true, false );
+
+        this.setRotation( obj, obj.rotation );
+        this.setLodDistance( obj, obj.lodDistance );
+        this.setTextureVariation( obj, obj.textureVariation );
+        this.setDynamic( obj, obj.dynamic );
+        this.setVisible( obj, obj.visible );
+        this.setOnFire( obj, obj.onFire );
+        this.setFrozen( obj, obj.frozen );
+        this.setLightColor( obj, obj.lightColor );
     }
 
     removeObject( entityId ) {
@@ -70,7 +87,7 @@ class ObjectStreamer {
     }
 
     setRotation( obj, rot ) {
-        natives.setEntityRotation( +obj.handle, this.toRadian( rot.x ), this.toRadian( rot.y ), this.toRadian( rot.z ), 1, true );
+        natives.setEntityRotation( +obj.handle, rot.x, rot.y, rot.z, 2, false );
         obj.rotation = rot;
     }
 
@@ -80,11 +97,6 @@ class ObjectStreamer {
     }
 
     async setModel( obj, model ) {
-
-        if( !await asyncModel.load( +obj.entityId, model ) )
-            return alt.log( `[OBJECT-STREAMER] Couldn't create object with model ${ model }.` );
-
-        natives.createModelSwap( obj.position.x, obj.position.y, obj.position.z, 2, natives.getHashKey( obj.model ), natives.getHashKey( model ), true );
         obj.model = model;
     }
 
@@ -166,3 +178,10 @@ class ObjectStreamer {
 }
 
 export const objStreamer = new ObjectStreamer();
+
+alt.on( "resourceStop", ( ) => {
+    objStreamer.objects.forEach( ( obj ) => {
+        objStreamer.removeObject( +obj.entityId );
+        objStreamer.clearObject( +obj.entityId );
+    } );
+} );

@@ -1,8 +1,14 @@
 # ALT:V MP Server-side Object Streamer
 A server-side C# implementation of an object streamer for ALT:V MP.
 
+## Changelog
+- Fixed some issues with rotation not setting correctly.
+- Some optimizations.
+- Added ``GetClosestDynamicObject``.
+- Fixed an issue with objects not reloading properly when they streamed out but weren't removed from cache.
+
 ## Installation
-- This resource makes use of the ``AltV.Net.EntitySync`` and ``AltV.Net.EntitySync.ServerEvent`` nuget package, make sure to install those prior to using this resource.
+- This resource makes use of the ``AltV.Net.EntitySync (v1.0.20-dev-preview)`` and ``AltV.Net.EntitySync.ServerEvent (v1.0.19-dev-preview)`` nuget package, make sure to install those prior to using this resource.
 - Copy ``server-scripts/ObjectStreamer.cs`` to your gamemode.
 - Make sure to add the following code to your gamemode's OnStart() method(the object streamer won't work without it!):
 ```csharp
@@ -20,17 +26,20 @@ AltEntitySync.Init( 1, 100,
 The following global methods are available:
 ```csharp
 // Create a new object on the map, returns the created object.
-DynamicObject CreateDynamicObject( 
-    string model, Vector3 position, Vector3 rotation, int dimension = 0, bool? isDynamic = null, bool? frozen = null, uint? lodDistance = null, 
-    Rgb lightColor = null, bool? onFire = null, TextureVariation? textureVariation = null, bool? visible = null, string type = "object", uint streamRange = 400 
+DynamicObject CreateDynamicObject(
+    string model, Vector3 position, Vector3 rotation, int dimension = 0, bool? isDynamic = null, bool? frozen = null, uint? lodDistance = null,
+    Rgb lightColor = null, bool? onFire = null, TextureVariation? textureVariation = null, bool? visible = null, uint streamRange = 400
 );
 
 // Destroy an object by it's ID or object instance. returns true if successful.
 bool DestroyDynamicObject( ulong dynamicObjectId );
-bool DestroyDynamicObject( DynamicObject obj );
+void DestroyDynamicObject( DynamicObject obj );
 
 // Get an object by it's ID. returns the object if successful or null if not.
 DynamicObject GetDynamicObject( ulong dynamicObjectId );
+
+// Get the closest dynamic object to the specified Vector3 position.
+(DynamicObject obj, float distance) GetClosestDynamicObject( Vector3 pos );
 
 // Destroy all created objects.
 void DestroyAllDynamicObjects( );

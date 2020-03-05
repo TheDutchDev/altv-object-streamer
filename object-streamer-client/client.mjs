@@ -13,6 +13,7 @@ alt.onServer( "entitySync:create", entity => {
         let data = entity.data;
 
         if( data && data.entityType === "object" ) {
+
             objStreamer.addObject(
                 +entity.id, data.model, data.entityType,
                 entity.position, data.rotation,
@@ -21,10 +22,17 @@ alt.onServer( "entitySync:create", entity => {
             );
         }
     }
+    // this entity has streamed in before, fetch from cache
+    else
+    {
+        objStreamer.restoreObject( +entity.id );
+    }
 } );
 
 // when an object is streamed out
 alt.onServer( "entitySync:remove", entityId => {
+
+    //alt.log( 'streamout: ', entityId );
     objStreamer.removeObject( +entityId );
 } );
 
