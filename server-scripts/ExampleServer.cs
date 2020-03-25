@@ -6,6 +6,7 @@ using AltV.Net.EntitySync;
 using AltV.Net.EntitySync.ServerEvent;
 using AltV.Net.EntitySync.SpatialPartitions;
 using DasNiels.AltV.Streamers;
+using DasNiels.AltV.Streamers.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,9 +21,11 @@ namespace TestServer
         {
             // YOU MUST ADD THIS IN THE ONSTART OF YOUR GAMEMODE, OBJECTSTREAMER WONT WORK WITHOUT IT!
             AltEntitySync.Init( 1, 100,
-               repository => new ServerEventNetworkLayer( repository ),
-               ( ) => new LimitedGrid3( 50_000, 50_000, 100, 10_000, 10_000, 600 ),
-               new IdProvider( )
+               ( threadCount, repository ) => new ServerEventNetworkLayer( threadCount, repository ),
+               ( entity, threadCount ) => ( entity.Id % threadCount ),
+               ( entityId, entityType, threadCount ) => ( entityId % threadCount ),
+               ( threadId ) => new LimitedGrid3( 50_000, 50_000, 100, 10_000, 10_000, 600 ),
+               new IdProvider( ) 
             );
             //////////////////////////
 
@@ -64,6 +67,11 @@ namespace TestServer
             ObjectStreamer.CreateDynamicObject( "port_xr_lifeboat", new Vector3( -859.655f, -803.499f, 25.566f ), new Vector3( 0, 0, 0 ), 0 );
             ObjectStreamer.CreateDynamicObject( "bkr_prop_biker_bowlpin_stand", new Vector3( -959.655f, -903.499f, 25.566f ), new Vector3( 0, 0, 0 ), 0 );
             ObjectStreamer.CreateDynamicObject( "bkr_prop_biker_tube_crn", new Vector3( -909.655f, -953.499f, 25.566f ), new Vector3( 0, 0, 0 ), 0 );
+
+            // Create a c4 object
+            C4 c4 = ObjectStreamer.CreateDynamicObject<C4>( new C4( new Vector3( -889.655f, -853.499f, 19.55599f ), 0, 400 ), "prop_bomb_01_s", new Vector3( 270f, 0, 0 ) );
+
+            ObjectStreamer.RemoveWorldObjectOfTypeAtCoords( "prop_bench_09", new Vector3( -878.4539f, -842.7523f, 18.09901f ), 5, 0, 200 );
         }
 
         private async Task OnConsoleCommand( string name, string[ ] args )
@@ -71,14 +79,16 @@ namespace TestServer
             // destroy all objects
             if( name == "dao" )
             {
-                ObjectStreamer.DestroyAllDynamicObjects( );
+                ObjectStreamer.DestroyAllDynamicObjects<IDynamicObject>( );
+                ObjectStreamer.DestroyAllDynamicObjects<RemovedWorldObject>( );
                 Console.WriteLine( $"all objects destroyed." );
             }
 
             // create all objects
             if( name == "cao" )
             {
-                ObjectStreamer.DestroyAllDynamicObjects( );
+                ObjectStreamer.DestroyAllDynamicObjects<IDynamicObject>( );
+                ObjectStreamer.DestroyAllDynamicObjects<RemovedWorldObject>( );
                 CreateObjects( );
             }
 
@@ -89,10 +99,48 @@ namespace TestServer
                     return;
 
                 ulong objId = Convert.ToUInt64( args[ 0 ] );
-                if( ObjectStreamer.DestroyDynamicObject( objId ) )
+                if( ObjectStreamer.DestroyDynamicObject<IDynamicObject>( objId ) )
                 {
                     Console.WriteLine( $"Object with ID { objId } deleted!" );
                 }
+            }
+
+            // destroy object
+            if( name == "rmo" )
+            {
+                if( args.Length == 0 )
+                    return;
+
+                IPlayer player = Alt.GetAllPlayers( ).First( );
+
+                if( player != null )
+                {
+                    string objModel = args[ 0 ];
+
+                    ObjectStreamer.RemoveWorldObjectOfTypeAtCoords( objModel, player.Position );
+                    Console.WriteLine( $"World object with model { objModel } at { player.Position.X }, { player.Position.Y }, { player.Position.Z } deleted!" );
+                }
+                else
+                    Console.WriteLine( $"Couldnt find any players." );
+            }
+
+            // move object
+            if( name == "mo" )
+            {
+                if( args.Length == 0 )
+                    return;
+
+                ulong objId = Convert.ToUInt64( args[ 0 ] );
+                var obj = ObjectStreamer.GetDynamicObject<DynamicObject>( objId );
+                if( obj != null )
+                {
+                    var pos = obj.Position + new Vector3( 5f );
+                    Console.WriteLine( $"Moving Object to { pos.X }, { pos.Y }, { pos.Z }" );
+                    await ObjectStreamer.MoveDynamicObject( obj, pos, 5 );
+                    Console.WriteLine( $"Object moved!" );
+                }
+                else
+                    Console.WriteLine( $"Couldnt find object with ID { objId }" );
             }
 
             // change rotation
@@ -102,7 +150,7 @@ namespace TestServer
                     return;
 
                 ulong objId = Convert.ToUInt64( args[ 0 ] );
-                var obj = ObjectStreamer.GetDynamicObject( objId );
+                var obj = ObjectStreamer.GetDynamicObject<IDynamicObject>( objId );
                 if( obj != null )
                 {
                     Vector3 rot = obj.Rotation;
@@ -120,7 +168,7 @@ namespace TestServer
                     return;
 
                 ulong objId = Convert.ToUInt64( args[ 0 ] );
-                var obj = ObjectStreamer.GetDynamicObject( objId );
+                var obj = ObjectStreamer.GetDynamicObject<IDynamicObject>( objId );
                 if( obj != null )
                 {
                     obj.Visible = !obj.Visible;
@@ -137,7 +185,7 @@ namespace TestServer
                     return;
 
                 ulong objId = Convert.ToUInt64( args[ 0 ] );
-                var obj = ObjectStreamer.GetDynamicObject( objId );
+                var obj = ObjectStreamer.GetDynamicObject<IDynamicObject>( objId );
                 if( obj != null )
                 {
                     obj.LodDistance += 100;
@@ -154,7 +202,7 @@ namespace TestServer
                     return;
 
                 ulong objId = Convert.ToUInt64( args[ 0 ] );
-                var obj = ObjectStreamer.GetDynamicObject( objId );
+                var obj = ObjectStreamer.GetDynamicObject<IDynamicObject>( objId );
                 if( obj != null )
                 {
                     var variations = Enum.GetValues( typeof( TextureVariation ) );
@@ -173,7 +221,7 @@ namespace TestServer
                     return;
 
                 ulong objId = Convert.ToUInt64( args[ 0 ] );
-                var obj = ObjectStreamer.GetDynamicObject( objId );
+                var obj = ObjectStreamer.GetDynamicObject<IDynamicObject>( objId );
                 if( obj != null )
                 {
                     obj.Dynamic = !obj.Dynamic;
@@ -190,7 +238,7 @@ namespace TestServer
                     return;
 
                 ulong objId = Convert.ToUInt64( args[ 0 ] );
-                var obj = ObjectStreamer.GetDynamicObject( objId );
+                var obj = ObjectStreamer.GetDynamicObject<IDynamicObject>( objId );
                 if( obj != null )
                 {
                     obj.OnFire = !obj.OnFire;
@@ -207,7 +255,7 @@ namespace TestServer
                     return;
 
                 ulong objId = Convert.ToUInt64( args[ 0 ] );
-                var obj = ObjectStreamer.GetDynamicObject( objId );
+                var obj = ObjectStreamer.GetDynamicObject<IDynamicObject>( objId );
                 if( obj != null )
                 {
                     obj.Frozen = !obj.Frozen;
@@ -224,7 +272,7 @@ namespace TestServer
                     return;
 
                 ulong objId = Convert.ToUInt64( args[ 0 ] );
-                var obj = ObjectStreamer.GetDynamicObject( objId );
+                var obj = ObjectStreamer.GetDynamicObject<IDynamicObject>( objId );
                 if( obj != null )
                 {
                     Random r = new Random( );
@@ -242,11 +290,11 @@ namespace TestServer
                     return;
 
                 ulong objId = Convert.ToUInt64( args[ 0 ] );
-                var obj = ObjectStreamer.GetDynamicObject( objId );
+                var obj = ObjectStreamer.GetDynamicObject<IDynamicObject>( objId );
                 if( obj != null )
                 {
                     // change object into a house
-                    obj.Model = "lf_house_17_";
+                    obj.ModelName = "lf_house_17_";
                     Console.WriteLine( $"Object changed into a house." );
                 }
                 else
@@ -260,7 +308,7 @@ namespace TestServer
                     return;
 
                 ulong objId = Convert.ToUInt64( args[ 0 ] );
-                var obj = ObjectStreamer.GetDynamicObject( objId );
+                var obj = ObjectStreamer.GetDynamicObject<IDynamicObject>( objId );
                 if( obj != null )
                 {
                     Console.WriteLine( $"obj pos: { obj.Position.Z }" );
@@ -279,7 +327,7 @@ namespace TestServer
                     return;
 
                 ulong objId = Convert.ToUInt64( args[ 0 ] );
-                var obj = ObjectStreamer.GetDynamicObject( objId );
+                var obj = ObjectStreamer.GetDynamicObject<IDynamicObject>( objId );
                 if( obj != null )
                 {
                     Console.WriteLine( $"Object found, data: { obj.Model }, { obj.Rotation.X }, { obj.Rotation.Y }, { obj.Rotation.Z }, { obj.Frozen }, ...!" );
@@ -295,7 +343,7 @@ namespace TestServer
 
                 if( player != null )
                 {
-                    (DynamicObject obj, float distance) = ObjectStreamer.GetClosestDynamicObject( player.Position );
+                    (IDynamicObject obj, float distance) = ObjectStreamer.GetClosestDynamicObject<IDynamicObject>( player.Position );
 
                     if( obj == null )
                     {
@@ -312,7 +360,7 @@ namespace TestServer
             // count objects
             if( name == "countobj" )
             {
-                Console.WriteLine( $"total objects created: { ObjectStreamer.GetAllDynamicObjects( ).Count }" );
+                Console.WriteLine( $"total objects created: { ObjectStreamer.GetAllDynamicObjects<IDynamicObject>( ).Count }" );
             }
         }
 
@@ -325,7 +373,7 @@ namespace TestServer
 
         public override void OnStop( )
         {
-            ObjectStreamer.DestroyAllDynamicObjects( );
+            ObjectStreamer.DestroyAllDynamicObjects<IDynamicObject>( );
             Console.WriteLine( $"Server stopped." );
         }
     }

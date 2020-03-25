@@ -8,37 +8,40 @@ import * as alt from 'alt';
 import { objStreamer } from "./object-streamer";
 
 // when an object is streamed in
-alt.onServer( "entitySync:create", entity => {
-    if( entity.data ) {
-        let data = entity.data;
+alt.onServer( "entitySync:create", ( entityId, entityType, position, entityData ) => {
+    alt.log( 'obj streamin: ', JSON.stringify( entityData ) );
 
-        if( data && data.entityType === "object" ) {
+    if( entityData ) {
+        if( +entityType === 0 ) {
 
             objStreamer.addObject(
-                +entity.id, data.model, data.entityType,
-                entity.position, data.rotation,
-                data.lodDistance, data.textureVariation, data.dynamic,
-                data.visible, data.onFire, data.frozen, data.lightColor
+                +entityId, +entityData.model, +entityType,
+                position, entityData.rotation,
+                entityData.lodDistance, entityData.textureVariation, entityData.dynamic,
+                entityData.visible, entityData.onFire, entityData.frozen, entityData.lightColor
             );
         }
+
+        if( +entityType === 1 ) {
+            objStreamer.removeWorldObject( +entityId, position, +entityData.model, entityData.radius, entityType );
+        }
     }
-    // this entity has streamed in before, fetch from cache
-    else
-    {
-        objStreamer.restoreObject( +entity.id );
+    // this entity has streamed in before
+    else {
+        objStreamer.restoreObject( +entityId, +entityType );
     }
 } );
 
 // when an object is streamed out
-alt.onServer( "entitySync:remove", entityId => {
+alt.onServer( "entitySync:remove", ( entityId, entityType ) => {
 
-    //alt.log( 'streamout: ', entityId );
-    objStreamer.removeObject( +entityId );
+    alt.log( 'streamout: ', entityId );
+    objStreamer.removeObject( +entityId, +entityType );
 } );
 
 // when a streamed in object changes position data
-alt.onServer( "entitySync:updatePosition", ( entityId, position ) => {
-    let obj = objStreamer.getObject( +entityId );
+alt.onServer( "entitySync:updatePosition", ( entityId, entityType, position ) => {
+    let obj = objStreamer.getObject( +entityId, +entityType );
 
     if( obj === null )
         return;
@@ -47,8 +50,8 @@ alt.onServer( "entitySync:updatePosition", ( entityId, position ) => {
 } );
 
 // when a streamed in object changes data
-alt.onServer( "entitySync:updateData", ( entityId, newData ) => {
-    let obj = objStreamer.getObject( +entityId );
+alt.onServer( "entitySync:updateData", ( entityId, entityType, newData ) => {
+    let obj = objStreamer.getObject( +entityId, +entityType );
 
     if( obj === null )
         return;
@@ -79,9 +82,15 @@ alt.onServer( "entitySync:updateData", ( entityId, newData ) => {
 
     if( newData.hasOwnProperty( "lightColor" ) )
         objStreamer.setLightColor( obj, newData.lightColor );
+
+    if( newData.hasOwnProperty( "move" ) )
+        objStreamer.moveObject( obj, newData.move );
+
+    if( newData.hasOwnProperty( "radius" ) )
+        objStreamer.setRadius( obj, newData.radius );
 } );
 
 // when a streamed in object needs to be removed
-alt.onServer( "entitySync:clearCache", entityId => {
-    objStreamer.clearObject( +entityId );
+alt.onServer( "entitySync:clearCache", ( entityId, entityType ) => {
+    objStreamer.clearObject( +entityId, +entityType );
 } );
