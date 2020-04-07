@@ -11,7 +11,7 @@ import { objStreamer } from "./object-streamer";
 alt.onServer( "entitySync:create", ( entityId, entityType, position, entityData ) => {
     alt.log( 'obj streamin: ', JSON.stringify( entityData ) );
 
-    if( entityData ) {
+    if( entityData && entityData !== undefined ) {
         if( +entityType === 0 ) {
 
             objStreamer.addObject(
